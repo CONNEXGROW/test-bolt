@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testimonials with Google Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #testimonials {
+            margin-bottom: 20px;
+        }
+        .testimonial {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            margin-left: 10px;
+        }
+        #loginButton {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Testimonials</h1>
+    <button id="loginButton">Login with Google</button>
+    <div id="testimonialForm" style="display: none;">
+        <input type="text" id="testimonialInput" placeholder="Enter testimonial" required>
+        <button type="submit">Add Testimonial</button>
+    </div>
+    <div id="testimonials"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKEIBthV_wcX0Omzqk97tITFqMx8hRGVA",
+            authDomain: "bolt-uplords.firebaseapp.com",
+            projectId: "bolt-uplords",
+            storageBucket: "bolt-uplords.firebasestorage.app",
+            messagingSenderId: "199484285040",
+            appId: "1:199484285040:web:5a28f158b5541cadad54b5"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Google Login
+        document.getElementById('loginButton').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                document.getElementById('testimonialForm').style.display = 'block';
+                document.getElementById('loginButton').style.display = 'none';
+            }).catch((error) => {
+                console.error("Error during login:", error);
+            });
+        });
+
+        // Function to add a testimonial
+        document.getElementById('testimonialForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const testimonialInput = document.getElementById('testimonialInput');
+            db.collection('testimonials').add({
+                text: testimonialInput.value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            testimonialInput.value = '';
+        });
+
+        // Function to delete a testimonial
+        function deleteTestimonial(id) {
+            db.collection('testimonials').doc(id).delete();
+        }
+
+        // Function to render testimonials
+        function renderTestimonials(doc) {
+            const testimonialsDiv = document.getElementById('testimonials');
+            const testimonialDiv = document.createElement('div');
+            testimonialDiv.className = 'testimonial';
+            testimonialDiv.innerHTML = `
+                <p>${doc.data().text}</p>
+                <button onclick="deleteTestimonial('${doc.id}')">Delete</button>
+            `;
+            testimonialsDiv.appendChild(testimonialDiv);
+        }
+
+        // Real-time listener for testimonials
+        db.collection('testimonials').orderBy('createdAt').onSnapshot(snapshot => {
+            document.getElementById('testimonials').innerHTML = '';
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    renderTestimonials(change.doc);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
